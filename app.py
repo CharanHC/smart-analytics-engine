@@ -14,7 +14,7 @@ def get_base64(bin_file):
     except FileNotFoundError:
         return "" # Fallback if image isn't found
 
-bg_img = get_base64("background.JPEG")
+bg_img = get_base64("background.jpeg")
 
 # Inject Custom CSS to match the new screenshots
 st.markdown(f"""
