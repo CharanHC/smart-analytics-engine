@@ -11,7 +11,7 @@ def get_base64(bin_file):
         data = f.read()
     return base64.b64encode(data).decode()
 
-bg_img = get_base64("background.png")
+bg_img = get_base64("download.jpg")
 
 # Inject Custom CSS
 st.markdown(f"""
