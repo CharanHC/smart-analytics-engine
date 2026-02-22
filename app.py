@@ -1,34 +1,116 @@
 import streamlit as st
 import pandas as pd
 from engine import run_query, SmartAnalyticsEngine
+import base64
+import io
 
 st.set_page_config(page_title="Smart Analytics Engine", layout="wide")
 
-import base64
-
 def get_base64(bin_file):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+    try:
+        with open(bin_file, 'rb') as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except FileNotFoundError:
+        return "" # Fallback if image isn't found
 
-bg_img = get_base64("1.jpg")
+bg_img = get_base64("background.JPEG")
 
-# Inject Custom CSS
+# Inject Custom CSS to match the new screenshots
 st.markdown(f"""
 <style>
-    /* Main Background */
+    /* Main Background & Base Text */
     .stApp {{
-        background-image: url("data:image/png;base64,{bg_img}");
+        background-image: url("data:image/jpeg;base64,{bg_img}");
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
-        color: #e0e0e0;
+        color: #1e293b;
     }}
     
     /* Header styling */
     h1, h2, h3 {{
-        color: #ffffff !important;
+        color: #0f172a !important;
         font-family: 'Inter', sans-serif;
+        font-weight: 700;
+    }}
+
+    /* Center Main Title */
+    h1 {{
+        text-align: center;
+        margin-bottom: 10px;
+    }}
+
+    /* Normal sizing for Radio Group Labels */
+    div[data-testid="stRadio"] > label {{
+        font-size: 14px;
+        color: #0f172a !important;
+        margin-bottom: 5px;
+        font-weight: 500;
+    }}
+
+    /* Transform Radio Buttons into Gradient Blocks with Wrapping */
+    div[role="radiogroup"] {{
+        display: flex;
+        flex-direction: row;
+        gap: 15px;
+        flex-wrap: wrap;
+    }}
+
+    div[role="radiogroup"] > label {{
+        background: linear-gradient(90deg, #ff8a00, #e52e71) !important;
+        border-radius: 8px;
+        padding: 10px 15px;
+        width: 130px; /* Forces text wrapping as seen in screenshots */
+        min-height: 55px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        cursor: pointer;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin: 0 !important;
+        transition: transform 0.2s;
+    }}
+
+    div[role="radiogroup"] > label:hover {{
+        transform: translateY(-2px);
+    }}
+
+    div[role="radiogroup"] > label p {{
+        color: white !important;
+        font-weight: bold;
+        font-size: 14px;
+        margin: 0 0 0 8px;
+        white-space: normal; /* Allows text to break to new line */
+        line-height: 1.2;
+    }}
+
+    /* Radio Circle Visibility and Styling */
+    div[role="radiogroup"] label div[data-baseweb="radio"] > div {{
+        background-color: transparent !important;
+        border: 2px solid white !important;
+    }}
+
+    /* Fill inner circle when checked */
+    div[role="radiogroup"] label[data-checked="true"] div[data-baseweb="radio"] > div > div {{
+        background-color: white !important;
+    }}
+
+    /* File Uploader styling */
+    [data-testid="stFileUploader"] {{
+        max-width: 600px;
+        background-color: rgba(255, 255, 255, 0.85);
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 15px;
+    }}
+
+    /* Dataframe background */
+    [data-testid="stDataFrame"] {{
+        background-color: white;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
     }}
 
     /* Primary and Secondary Buttons */
@@ -66,11 +148,12 @@ st.markdown(f"""
         border: none;
     }}
 
-    /* Dataframe background */
-    [data-testid="stDataFrame"] {{
-        background-color: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-        padding: 10px;
+    /* Success Message Styling adjustments */
+    [data-testid="stAlert"] {{
+        background-color: rgba(17, 153, 142, 0.2);
+        color: #0f172a;
+        font-weight: 500;
+        border: none;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -85,7 +168,7 @@ if 'query_result' not in st.session_state:
     st.session_state['query_result'] = None
 
 if data_source_opt == "Upload Excel File":
-    uploaded_file = st.file_uploader("Upload Excel file", type=["xlsx", "csv"])
+    uploaded_file = st.file_uploader("Upload Excel file", type=["xlsx", "csv"], label_visibility="collapsed")
     if uploaded_file:
         if uploaded_file.name.endswith(".csv"):
             st.session_state['df'] = pd.read_csv(uploaded_file)
@@ -122,7 +205,7 @@ if df is not None:
     st.success("File uploaded successfully!")
 
     st.subheader("Preview")
-    st.dataframe(df.head())
+    st.dataframe(df.head(), use_container_width=True)
 
     # Ask question
     st.subheader("Ask AI Question")
@@ -133,7 +216,7 @@ if df is not None:
         
     if st.session_state['query_result'] is not None:
         st.subheader("Result")
-        st.dataframe(st.session_state['query_result'])
+        st.dataframe(st.session_state['query_result'], use_container_width=True)
 
         st.download_button(
             "Download Result",
@@ -178,8 +261,6 @@ if df is not None:
             except Exception:
                 st.info(f"Could not filter numeric column '{col}'")
 
-    import io
-
     st.subheader("Filtered Data")
     display_cols = st.multiselect("Choose columns to display", df.columns, default=df.columns[:5])
     if display_cols:
@@ -187,7 +268,7 @@ if df is not None:
     else:
         final_df = filtered_df
 
-    st.dataframe(final_df)
+    st.dataframe(final_df, use_container_width=True)
 
     download_format = st.radio("Download Format", ["CSV", "Excel"], horizontal=True)
 
@@ -231,11 +312,11 @@ if df is not None:
                 default_y_index = 1
             else:
                 default_y_index = 0
-                
+
             y_axis = st.selectbox("Y-Axis (Numeric)", final_df.columns, index=default_y_index)
-            
+
         st.write(f"Displaying **{chart_type}** for `{y_axis}` over `{x_axis}`")
-        
+
         # Prepare data for plotting (aggregate if necessary depending on the chart)
         # Use streamlit native charts
         if chart_type == "Bar Chart":
@@ -246,6 +327,6 @@ if df is not None:
             st.scatter_chart(final_df, x=x_axis, y=y_axis)
         elif chart_type == "Area Chart":
             st.area_chart(final_df, x=x_axis, y=y_axis)
-            
+
     else:
         st.info("Need at least 2 columns in the dataset to generate a dashboard.")
